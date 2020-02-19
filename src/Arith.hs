@@ -23,7 +23,12 @@ data AST = BinOp Operator AST AST
 -- Между числами и знаками операций по одному пробелу
 -- BinOp Plus (Num 13) (Num 42) -> "13 42 +"
 toPostfix :: AST -> String
-toPostfix ast = error "toPostfix not implemented"
+toPostfix (Num a) = show a
+toPostfix (BinOp op a1 a2) = (toPostfix a1) ++ " " ++ (toPostfix a2) ++ " " ++ (case op of
+                                                                                Plus  -> "+"
+                                                                                Mult  -> "*"
+                                                                                Minus -> "-"
+                                                                                Div   -> "/")
 
 -- Парсит выражение в постфиксной записи 
 -- Выражение принимается только целиком (не максимально длинный префикс)
@@ -32,15 +37,36 @@ toPostfix ast = error "toPostfix not implemented"
 -- "1 2 3 +" -> Nothing
 -- "1 2 + *" -> Nothing 
 fromPostfix :: String -> Maybe AST 
-fromPostfix input = error "fromPostfix not implemented"
+fromPostfix input = do
+      [ast] <- (fromPostfix' input [])
+      return ast where
+        fromPostfix' :: String -> [AST] -> Maybe [AST]
+        fromPostfix' "" stack = Just stack
+        fromPostfix' (x:xs) stack | x == ' '        = fromPostfix' xs stack
+                                  | isDigit x       = do {
+                                                       (num, rest) <- parseNum (x:xs);
+                                                       fromPostfix' rest (num:stack);
+                                                     }
+                                  | (elem x "+*/-") = do {
+                                                       (op, rest''')  <- parseOp (x:xs);
+                                                       (case (stack) of
+                                                           (ast1:ast2:rest') -> fromPostfix' rest''' ((BinOp op ast2 ast1) : rest')
+                                                           _ -> Nothing
+                                                       );
+                                                     }
+                                  | otherwise       = Nothing
+
+
 
 -- Парсит левую скобку
-parseLbr :: String -> Maybe ((), String)
-parseLbr = error "parseLbr not implemented"
+parseLbr :: String -> Maybe (Bool, String)
+parseLbr ('(':xs) = Just (True, xs)
+parseLbr x        = Just(False, x)
 
 -- Парсит правую скобку
-parseRbr :: String -> Maybe ((), String)
-parseRbr = error "parseRbr not implemented"
+parseRbr :: String -> Maybe (Bool, String)
+parseRbr (')':xs) = Just (True, xs)
+parseRbr x        = Just(False, x)
 
 parseExpr :: String -> Maybe (AST, String)
 parseExpr input = parseSum input
@@ -60,9 +86,14 @@ parseOp ('-':xs) = Just (Minus, xs)
 parseOp ('/':xs) = Just (Div, xs)
 parseOp _ = Nothing 
 
+parseTerm :: String -> Maybe (AST, String)
+parseTerm input = do
+    (isL, rest) <- parseLbr input
+    if isL then parseSum rest else parseNum input
+
 parseMult :: String -> Maybe (AST, String)
 parseMult input = do
-    (num, rest) <- parseNum input 
+    (num, rest) <- parseTerm input 
     case parseOp rest of 
       Just (op, rest') | op == Mult || op == Div -> do
         (r, rest'') <- parseMult rest'  
@@ -73,10 +104,11 @@ parseMult input = do
 parseSum :: String -> Maybe (AST, String)
 parseSum input = do 
   (l, rest) <- parseMult input 
-  case parseOp rest of 
-    Just (op, rest') | op == Plus || op == Minus -> do
-      (r, rest'') <- parseSum rest'  
-      return (BinOp op l r, rest'') 
+  (isR, rest') <- parseRbr rest
+  if (isR) then (return (l, rest')) else case parseOp rest' of 
+    Just (op, rest'') | op == Plus || op == Minus -> do
+      (r, rest''') <- parseSum rest''
+      return (BinOp op l r, rest''') 
     _ -> return (l, rest)
 
 evaluate :: String -> Maybe Int
