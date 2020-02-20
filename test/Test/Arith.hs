@@ -1,7 +1,7 @@
 module Test.Arith where 
 
 import Test.HUnit (Assertion, (@?=))
-import Arith (evaluate, parseNum, parseOp, parseSum, parseMult, Operator (..), AST (..), toPostfix, fromPostfix)
+import Arith (evaluate, parseNum, parseOp, parseSum, parseMult, Operator (..), AST (..), toPostfix, fromPostfix, parseTerm)
 
 unit_evaluate :: Assertion 
 unit_evaluate = do 
@@ -64,3 +64,7 @@ unit_fromPostfix = do
     fromPostfix "13 42 +" @?= Just (BinOp Plus (Num 13) (Num 42))
     fromPostfix "1 2 3 +" @?= Nothing
     fromPostfix "1 2 + *" @?= Nothing 
+
+unit_parseTerm :: Assertion 
+unit_parseTerm = do 
+    parseTerm "(1" @?= Nothing

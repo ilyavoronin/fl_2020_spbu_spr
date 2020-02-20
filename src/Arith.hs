@@ -24,11 +24,7 @@ data AST = BinOp Operator AST AST
 -- BinOp Plus (Num 13) (Num 42) -> "13 42 +"
 toPostfix :: AST -> String
 toPostfix (Num a) = show a
-toPostfix (BinOp op a1 a2) = (toPostfix a1) ++ " " ++ (toPostfix a2) ++ " " ++ (case op of
-                                                                                Plus  -> "+"
-                                                                                Mult  -> "*"
-                                                                                Minus -> "-"
-                                                                                Div   -> "/")
+toPostfix (BinOp op a1 a2) = (toPostfix a1) ++ " " ++ (toPostfix a2) ++ " " ++ (show op)
 
 -- Парсит выражение в постфиксной записи 
 -- Выражение принимается только целиком (не максимально длинный префикс)
@@ -42,31 +38,28 @@ fromPostfix input = do
       return ast where
         fromPostfix' :: String -> [AST] -> Maybe [AST]
         fromPostfix' "" stack = Just stack
-        fromPostfix' (x:xs) stack | x == ' '        = fromPostfix' xs stack
-                                  | isDigit x       = do {
-                                                       (num, rest) <- parseNum (x:xs);
-                                                       fromPostfix' rest (num:stack);
-                                                     }
-                                  | (elem x "+*/-") = do {
-                                                       (op, rest''')  <- parseOp (x:xs);
-                                                       (case (stack) of
-                                                           (ast1:ast2:rest') -> fromPostfix' rest''' ((BinOp op ast2 ast1) : rest')
-                                                           _ -> Nothing
-                                                       );
-                                                     }
-                                  | otherwise       = Nothing
+        fromPostfix' (x:xs) stack | x == ' '  = fromPostfix' xs stack
+                                  | otherwise = case parseNum (x:xs) of
+                                        Just (num, rest) -> fromPostfix' rest (num:stack);
+                                        _                -> do {
+                                                         (op, rest''')  <- parseOp (x:xs);
+                                                         (case (stack) of
+                                                             (ast1:ast2:rest') -> fromPostfix' rest''' ((BinOp op ast2 ast1) : rest')
+                                                             _ -> Nothing
+                                                         );
+                                                       }
 
 
 
 -- Парсит левую скобку
-parseLbr :: String -> Maybe (Bool, String)
-parseLbr ('(':xs) = Just (True, xs)
-parseLbr x        = Just(False, x)
+parseLbr :: String -> Maybe ((), String)
+parseLbr ('(':xs) = Just ((), xs)
+parseLbr _        = Nothing
 
 -- Парсит правую скобку
-parseRbr :: String -> Maybe (Bool, String)
-parseRbr (')':xs) = Just (True, xs)
-parseRbr x        = Just(False, x)
+parseRbr :: String -> Maybe ((), String)
+parseRbr (')':xs) = Just ((), xs)
+parseRbr _        = Nothing
 
 parseExpr :: String -> Maybe (AST, String)
 parseExpr input = parseSum input
@@ -87,9 +80,13 @@ parseOp ('/':xs) = Just (Div, xs)
 parseOp _ = Nothing 
 
 parseTerm :: String -> Maybe (AST, String)
-parseTerm input = do
-    (isL, rest) <- parseLbr input
-    if isL then parseSum rest else parseNum input
+parseTerm input = case parseNum input of 
+    Nothing -> do
+      (_, rest) <- parseLbr input
+      (l, rest') <- parseSum rest
+      (_, rest'') <- parseRbr rest'
+      return (l, rest'')
+    x -> x
 
 parseMult :: String -> Maybe (AST, String)
 parseMult input = do
@@ -103,12 +100,11 @@ parseMult input = do
 
 parseSum :: String -> Maybe (AST, String)
 parseSum input = do 
-  (l, rest) <- parseMult input 
-  (isR, rest') <- parseRbr rest
-  if (isR) then (return (l, rest')) else case parseOp rest' of 
-    Just (op, rest'') | op == Plus || op == Minus -> do
-      (r, rest''') <- parseSum rest''
-      return (BinOp op l r, rest''') 
+  (l, rest) <- parseMult input
+  case parseOp rest of 
+    Just (op, rest') | op == Plus || op == Minus -> do
+      (r, rest'') <- parseSum rest'
+      return (BinOp op l r, rest'') 
     _ -> return (l, rest)
 
 evaluate :: String -> Maybe Int
