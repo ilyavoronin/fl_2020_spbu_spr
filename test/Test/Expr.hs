@@ -50,8 +50,8 @@ unit_parseExpr :: Assertion
 unit_parseExpr = do
     runParser parseExpr "1*2*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (Num 2)) (Num 3))
     runParser parseExpr "123"     @?= Success "" (Num 123)
-    runParser parseExpr "1*2+3*4" @?= Success "" (BinOp Plus (BinOp Mult (Num 1) (Num 2)) (BinOp Mult (Num 1) (Num 2)))
-    runParser parseExpr "1+2*3+4" @?= Success "" (BinOp Plus (Num 1) (BinOp Plus (BinOp Mult (Num 2) (Num 3)) (Num 4)))
+    runParser parseExpr "1*2+3*4" @?= Success "" (BinOp Plus (BinOp Mult (Num 1) (Num 2)) (BinOp Mult (Num 3) (Num 4)))
+    runParser parseExpr "1+2*3+4" @?= Success "" (BinOp Plus (BinOp Plus (Num 1) (BinOp Mult (Num 2) (Num 3))) (Num 4)) 
 
 
 
@@ -75,6 +75,10 @@ expr2 =
            (Num <$> parseNum)
            BinOp
 
+expr3 :: Parser String String AST
+expr3 = 
+  uberExpr [(mult, RightAssoc), (sum', LeftAssoc), (div', NoAssoc)] (Num <$> parseNum) BinOp
+
 unit_expr1 :: Assertion
 unit_expr1 = do
   runParser expr1 "13" @?= Success "" (Num 13)
@@ -89,10 +93,15 @@ unit_expr1 = do
 unit_expr2 :: Assertion
 unit_expr2 = do
   runParser expr2 "13" @?= Success "" (Num 13)
-  runParser expr2 "(((1)))" @?= Failure ""
+  runParser expr2 "(((1)))" @?= Failure "Predicate failed"
   runParser expr2 "1+2*3-4/5" @?= Success "" (BinOp Div (BinOp Minus (BinOp Mult (BinOp Plus (Num 1) (Num 2)) (Num 3)) (Num 4)) (Num 5))
   runParser expr2 "1+2+3" @?= Success "" (BinOp Plus (BinOp Plus (Num 1) (Num 2)) (Num 3))
   runParser expr2 "1*2*3" @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (Num 2)) (Num 3))
   runParser expr2 "1/2/3" @?= Success "" (BinOp Div (BinOp Div (Num 1) (Num 2)) (Num 3))
   runParser expr2 "1-2-3" @?= Success "" (BinOp Minus (BinOp Minus (Num 1) (Num 2)) (Num 3))
   runParser expr2 "1-2*3/4+5*6-7-8/9" @?= Success "" (BinOp Div (BinOp Minus (BinOp Minus (BinOp Mult (BinOp Plus (BinOp Div (BinOp Mult (BinOp Minus (Num 1) (Num 2)) (Num 3)) (Num 4)) (Num 5)) (Num 6)) (Num 7)) (Num 8)) (Num 9))
+
+
+unit_expr3 :: Assertion
+unit_expr3 = do
+  runParser expr3 "13" @?= Success "" (Num 13)
