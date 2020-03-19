@@ -58,6 +58,13 @@ sepBy1 sep elem = (:) <$> elem <*> (some (sep *> elem))
 symbol :: Char -> Parser String String Char
 symbol c = satisfy (== c)
 
+string :: String -> Parser String String String
+string [] = success ""
+string (x:xs) = do 
+  c <- symbol x
+  s <- string xs
+  return $ c:s
+
 -- Успешно завершается, если последовательность содержит как минимум один элемент
 elem' :: (Show a) => Parser String [a] a
 elem' = satisfy (const True)
@@ -80,3 +87,11 @@ success a = Parser $ \input -> Success input a
 -- Всегда завершается ошибкой
 fail' :: e -> Parser e i a
 fail' = Parser . const . Failure
+
+parseAny :: [Char] -> Parser String String Char
+parseAny [a]    = symbol a
+parseAny (x:xs) = (symbol x) <|> parseAny xs
+
+parseAnyString :: [String] -> Parser String String String
+parseAnyString [a]    = (string a)
+parseAnyString (x:xs) = (string x) <|> parseAnyString xs
