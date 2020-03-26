@@ -1,0 +1,232 @@
+\documentclass[12pt]{article}
+
+\usepackage{cmap}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{graphicx}
+\usepackage{amsthm,amsmath,amssymb}
+\usepackage[russian,colorlinks=true,urlcolor=red,linkcolor=blue]{hyperref}
+\usepackage{enumerate}
+\usepackage{datetime}
+\usepackage{minted}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{color}
+\usepackage{verbatim}
+
+
+\def\WHOAMI{Воронин Илья}
+\def\DATE{26 марта}
+\def\CURNO{\NO\t{1}}
+
+\parskip=0em
+\parindent=0em
+
+\sloppy
+\voffset=-20mm
+\textheight=235mm
+\hoffset=-25mm
+\textwidth=180mm
+\headsep=12pt
+\footskip=20pt
+
+\setcounter{page}{0}
+\pagestyle{empty}
+
+% Shortcuts for writing solutions
+\newcommand{\solution}[1]{
+      \\ {\bf Решение.} \\
+      \input{solutions/#1}
+      \vspace*{0.5em}
+}
+
+% Основные математические символы
+\DeclareSymbolFont{extraup}{U}{zavm}{m}{n}
+\DeclareMathSymbol{\heart}{\mathalpha}{extraup}{86}
+\newcommand{\N}{\mathbb{N}}   % Natural numbers
+\newcommand{\R}{\mathbb{R}}   % Real numbers
+\newcommand{\Z}{\mathbb{Z}}   % Integer numbers
+\def\INF{\t{+}\infty}         % +inf
+\def\EPS{\varepsilon}         %
+\def\EMPTY{\varnothing}       %
+\def\PHI{\varphi}             %
+\def\SO{\Rightarrow}          % =>
+\def\EQ{\Leftrightarrow}      % <=>
+\def\t{\texttt}               % mono font
+\def\c#1{{\rm\sc{#1}}}        % font for classes NP, SAT, etc
+\def\O{\mathcal{O}}           %
+\def\NO{\t{\#}}               % #
+\renewcommand{\le}{\leqslant} % <=, beauty
+\renewcommand{\ge}{\geqslant} % >=, beauty
+\def\XOR{\text{ {\raisebox{-2pt}{\ensuremath{\Hat{}}}} }}
+\newcommand{\q}[1]{\langle #1 \rangle}               % <x>
+\newcommand\URL[1]{{\footnotesize{\url{#1}}}}        %
+\newcommand{\sfrac}[2]{{\scriptstyle\frac{#1}{#2}}}  % Очень маленькая дробь
+\newcommand{\mfrac}[2]{{\textstyle\frac{#1}{#2}}}    % Небольшая дробь
+\newcommand{\score}[1]{{\bf\color{red}{(#1)}}}
+
+% Отступы
+\def\makeparindent{\hspace*{\parindent}}
+\def\up{\vspace*{-0.3em}}
+\def\down{\vspace*{0.3em}}
+\def\LINE{\vspace*{-1em}\noindent \underline{\hbox to 1\textwidth{{ } \hfil{ } \hfil{ } }}}
+%\def\up{\vspace*{-\baselineskip}}
+
+\lhead{Формальные языки, весна 2019/20}
+\chead{}
+\rhead{Практика \CURNO.}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\lfoot{}
+\cfoot{\thepage\t{/}\pageref*{LastPage}}
+\rfoot{}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\newenvironment{MyList}[1][4pt]{
+  \begin{enumerate}[1.]
+  \setlength{\parskip}{0pt}
+  \setlength{\itemsep}{#1}
+}{       
+  \end{enumerate}
+}
+\newenvironment{InnerMyList}[1][0pt]{
+  \vspace*{-0.5em}
+  \begin{enumerate}[a)]
+  \setlength{\parskip}{#1}
+  \setlength{\itemsep}{0pt}
+}{
+  \end{enumerate}
+}
+
+\newcommand{\Section}[1]{
+  \refstepcounter{section}
+  \addcontentsline{toc}{section}{\arabic{section}. #1} 
+  %{\LARGE \bf \arabic{section}. #1} 
+  {\LARGE \bf #1} 
+  \vspace*{1em}
+  \makeparindent\unskip
+}
+\newcommand{\Subsection}[1]{
+  \refstepcounter{subsection}
+  \addcontentsline{toc}{subsection}{\arabic{section}.\arabic{subsection}. #1} 
+  {\Large \bf \arabic{section}.\arabic{subsection}. #1} 
+  \vspace*{0.5em}
+  \makeparindent\unskip
+}
+
+% Код с правильными отступами
+\newenvironment{code}{
+  \VerbatimEnvironment
+
+  \vspace*{-0.5em}
+  \begin{minted}{c}}{
+  \end{minted}
+  \vspace*{-0.5em}
+
+}
+
+% Формулы с правильными отступами
+\newenvironment{smallformula}{
+ 
+  \vspace*{-0.8em}
+}{
+  \vspace*{-1.2em}
+  
+}
+\newenvironment{formula}{
+ 
+  \vspace*{-0.4em}
+}{
+  \vspace*{-0.6em}
+  
+}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{brown}{rgb}{0.5,0.5,0}
+\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\dkgreen}[1]{{\color{dkgreen}{#1}}}
+
+\begin{document}
+\renewcommand{\dateseparator}{--}
+\begin{center}
+  {\Large\bf 
+   Второй курс, Весенний семестр 2019/20\\
+   Дз по формальным языкам \CURNO\\
+   \vspace*{0.5em} 
+   }
+  \vspace{0.5em}
+  {\WHOAMI}
+\end{center}
+
+\vspace{-1em}
+\LINE
+\vspace{1em}
+
+
+\pagestyle{fancy}
+
+
+\begin{enumerate}
+	    \item [\bf \textnumero 2]
+	    1)Сначала удалим длинные правила:\\
+	      1. S -> RS | R\\
+	      2. R -> ab | cd | $\epsilon$\\
+	      3. R -> aA\\
+	      4. A -> Sb\\
+	      5. R -> cB\\
+	      6. B -> Rd\\
+	    2)Теперь удалим эпсилон правила:\\
+	       Так как из S можем получит $\epsilon$, то создадим новый стартовый нетерминал. $\epsilon$ достижимо из S и из R:\\
+	        1. S -> C | $\epsilon$\\
+	        2. C -> RC | R\\
+			3. R -> ab | cd
+			4. R -> aA\\
+			5. A -> Cb\\
+			6. R -> cB\\
+			7. B -> Rd\\
+			Новые правила:\\
+			8. B -> d\\
+			9. A -> b\\
+	     3) Удалим цепные правила. В данном случае это С->R, S->C.  Цепные пары: (S, C), (S, R), (C, R):\\
+	     	 1. S -> $\epsilon$\\
+		     2. C -> RC\\
+		     3. R -> ab | cd
+		     4. R -> aA\\
+		     5. A -> Cb | b\\
+		     6. R -> cB\\
+		     7. B -> Rd\\
+		     8. B -> d\\
+		     Новые правила:\\
+		     9)S -> RC | ab | cd | aA | cB\\
+		     10)C -> ab | cd | aA | cB\\
+		  4) Объединим правила для одинаковых нетерминалов:
+		     1. S -> RC | ab | cd | aA | cB | $\epsilon$\\
+		     2. C -> RC | ab | cd | aA | cB \\
+		     3. R -> ab | cd | aA | cB\\
+		     4. A -> Cb | b\\
+		     5. B -> Rd | d\\
+		  5) Уберем двойные правила в которых есть терминал(a заменим на A'', b на B'', c на C'', d на D''):\\
+	    		1. S -> RC | A''B'' | C''D'' | A''A | C''B | $\epsilon$\\
+			    2. C -> RC | A''B'' | C''D'' | A''A | C''B \\
+			    3. R -> A''B'' | C''D'' | A''A | C''B\\
+			    4. A -> CB'' | b\\
+			    5. B -> RD'' | d\\
+			    6. A'' -> a\\
+			    7. B'' -> b\\
+			    8) C'' -> c\\
+			    9) D'' -> d\\
+	    \item [\bf \textnumero 3]
+	    Является. Вот КС грамматика:\\
+	      1. S -> E | O\\
+	      2. E -> AA | BB | AABB\\
+	      3. O -> AB\\
+	      4. B -> BBB\\
+	      5. A -> AAA\\
+	      6. A -> a\\
+	      7. B -> b\\
+	      Докажем что можем получить все слова. Пусть есть слово $a^nb^m$. Если n и m четные и больше 0, то цепочка такая S -> E -> AABB -> (потом добавляем по два к A или B до нужного количества правилами 4,5). Если n = 0, то m точно четное и цепочка S -> BB -> (так же как в первом случае). Аналогично когда m = 0. Если оба нечетные то S -> AB -> (как в первом случае).
+\end{enumerate}
+
+
+\end{document}
