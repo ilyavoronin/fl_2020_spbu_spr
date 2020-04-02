@@ -43,7 +43,7 @@ parseL = do
 
 parseSpc :: Parser String String ()
 parseSpc = do 
-  many (satisfy isSpace)
+  many (fmap (\x->'a') parseComment <|> satisfy isSpace)
   return ()
 
 
@@ -137,7 +137,7 @@ operatorsParsers = [(or', Binary LeftAssoc),
 parseExpr :: Parser String String AST
 parseExpr = uberExpr
             operatorsParsers
-            (Num <$> parseNum <|> Ident <$> parseIdent <|> symbol '(' *> parseExpr <* symbol ')')
+            (Num <$> parseNum <|> Ident <$> parseIdent <|> parseSpc *> symbol '(' *> parseSpc *> parseExpr <* parseSpc <* symbol ')' <* parseSpc)
             BinOp
             UnaryOp
 
@@ -149,22 +149,24 @@ parseNum :: Parser String String Int
 parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 `fmap` go
   where
     go :: Parser String String String
-    go = some (satisfy isDigit)
+    go = parseSpc *> some (satisfy isDigit) <* parseSpc
 
 isLetterOrUnderscore = (satisfy isLetter) <|> (symbol '_')
 
 parseIdent :: Parser String String String
 parseIdent = do
+  parseSpc
   t1 <- some isLetterOrUnderscore
   t2 <- many (isLetterOrUnderscore <|> (satisfy isDigit))
   t3 <- many (symbol '\'')
+  parseSpc
   return $ t1 ++ t2 ++ t3
 
 operators = ["+", "-", "*", "/=", "/", "==", "=", "<=", ">=", "<", ">", "||", "&&", "^"]
 
 -- Парсер для операторов
 parseOp :: Parser String String Operator
-parseOp = (parseAnyString operators) >>= toOperator where
+parseOp = parseSpc *> ((parseAnyString operators) >>= toOperator) <* parseSpc
 
 
 
@@ -263,3 +265,13 @@ parseWrite = do
   symbol ';'
   parseSpc
   return $ Write expr
+
+parseComment :: Parser String String ()
+parseComment = do
+  string "D:"
+  parseUntil ":D"
+  return ()
+
+
+parseUntil :: String -> Parser String String String
+parseUntil s = (string s) <|> ((satisfy (\c -> True)) >> (parseUntil s))
