@@ -42,20 +42,8 @@ unit_parseNum :: Assertion
 unit_parseNum = do
     runParser parseNum "7" @?= Success "" 7
     runParser parseNum "12+3" @?= Success "+3" 12
-    runParser parseNum "04343" @?= Success "4343" 0
-    runParser parseNum "007" @?= Success "07" 0
     assertBool "" $ isFailure $ runParser parseNum "+3"
     assertBool "" $ isFailure $ runParser parseNum "a"
-
-unit_parseNegNum :: Assertion
-unit_parseNegNum = do
-    runParser parseNum "-123" @?= Success "" (-123)
-    assertBool "" $ isFailure $ runParser parseNum "--123"
-    assertBool "" $ isFailure $ runParser parseNum "+-3"
-    assertBool "" $ isFailure $ runParser parseNum "-+3"
-    assertBool "" $ isFailure $ runParser parseNum "-a"
-    assertBool "" $ isFailure $ runParser parseNum "+4444"
-    assertBool "" $ isFailure $ runParser parseNum "-04343"
 
 unit_parseIdent :: Assertion
 unit_parseIdent = do
@@ -91,7 +79,7 @@ unit_parseOp = do
 unit_parseExpr :: Assertion
 unit_parseExpr = do
     runParser parseExpr "0||1&&2+3" @?= Success "" (BinOp Or (Num 0) (BinOp And (Num 1) (BinOp Plus (Num 2) (Num 3))))
-    runParser parseExpr "1*-23*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (Num (-23))) (Num 3))
+    runParser parseExpr "1*-23*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (UnaryOp Minus (Num 23))) (Num 3))
     runParser parseExpr "1*2*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (Num 2)) (Num 3))
     runParser parseExpr "123"     @?= Success "" (Num 123)
     runParser parseExpr "abc"     @?= Success "" (Ident "abc")
@@ -141,7 +129,6 @@ mult  = string "*" >>= toOperator
 sum'  = string "+" >>= toOperator
 minus = string "-" >>= toOperator
 div'  = string "/" >>= toOperator
->>>>>>> HW04
 
 expr1 :: Parser String String AST
 expr1 =

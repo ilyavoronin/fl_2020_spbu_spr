@@ -19,21 +19,29 @@ uberExpr :: Monoid e
          -> (op -> ast -> ast -> ast) -- конструктор узла дерева для бинарной операции
          -> (op -> ast -> ast)        -- конструктор узла для унарной операции
          -> Parser e i ast
-uberExpr ((opar, assoc):xs) epar fast = let 
-  combpar = uberExpr xs epar fast in
-  case assoc of
-    LeftAssoc -> do
-      (first, arr) <- (,) <$> combpar <*> (many ((,) <$> opar <*> combpar))
-      return $ foldl (\acc (op, rast) -> fast op acc rast) first arr
-    RightAssoc  -> do
-      (arr, end) <- (,) <$> (many ((,) <$> combpar <*> opar)) <*> combpar
-      return $ foldr (\(rast, op) acc -> fast op rast acc) end arr
-    NoAssoc    -> (do
-      ast1 <- combpar
-      op   <- opar
-      ast2 <- combpar
-      return $ fast op ast1 ast2) <|> combpar
-uberExpr [] epar _ = epar
+uberExpr ((opar, typ):xs) epar fast bast = let 
+  combpar = uberExpr xs epar fast bast
+  parseMany = (,) <$> combpar <*> (many ((,) <$> opar <*> combpar)) in
+  case typ of
+    Binary assoc -> case assoc of
+      LeftAssoc -> do
+        (first, arr) <- parseMany
+        return $ foldl (\acc (op, rast) -> fast op acc rast) first arr
+      RightAssoc  -> do
+        (first, arr') <- parseMany
+        let (end, arr) = foldl (\(acc, narr) (op, ast) -> (ast, (acc,op):narr)) (first, []) arr'
+        return $ foldr (\(rast, op) acc -> fast op rast acc) end (reverse arr)
+      NoAssoc    -> (do
+        ast1 <- combpar
+        op   <- opar
+        ast2 <- combpar
+        return $ fast op ast1 ast2) <|> combpar
+    Unary -> (do
+      op <- opar
+      ast <- combpar
+      return  $ bast op ast) <|> combpar
+
+uberExpr [] epar _ _ = epar
 
 
 mult'   = string "*" >>= toOperator
@@ -49,6 +57,7 @@ le'     = string "<=" >>= toOperator
 lt'     = string "<" >>= toOperator
 ge'     = string ">=" >>= toOperator
 gt'     = string ">"  >>= toOperator
+not'    = string "!"  >>= toOperator
 
 
 
@@ -56,48 +65,31 @@ gt'     = string ">"  >>= toOperator
 -- с естественными приоритетами и ассоциативностью над натуральными числами с 0.
 -- В строке могут быть скобки
 
-operatorsParsers = [(or', LeftAssoc),
-                    (and', LeftAssoc),
-                    (equal' <|> nequal' <|> le' <|> lt' <|> ge' <|> gt', NoAssoc),
-                    (sum' <|> minus', LeftAssoc),
-                    (mult' <|> div', LeftAssoc),
-                    (pow', RightAssoc)]
+operatorsParsers = [(or', Binary LeftAssoc),
+                    (and', Binary LeftAssoc),
+                    (not', Unary),
+                    (equal' <|> nequal' <|> le' <|> lt' <|> ge' <|> gt', Binary NoAssoc),
+                    (sum' <|> minus', Binary LeftAssoc),
+                    (mult' <|> div', Binary LeftAssoc),
+                    (minus', Unary),
+                    (pow', Binary RightAssoc)]
 
 parseExpr :: Parser String String AST
 parseExpr = uberExpr
             operatorsParsers
             (Num <$> parseNum <|> Ident <$> parseIdent <|> symbol '(' *> parseExpr <* symbol ')')
             BinOp
+            UnaryOp
 
 
 isDigitW0 d = (d /= '0') && (isDigit d)
 
 -- Парсер для целых чисел
 parseNum :: Parser String String Int
-parseNum = (foldl (\acc d -> f acc d) 0) `fmap` go
+parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 `fmap` go
   where
     go :: Parser String String String
-    go = do {
-      t <- (fmap (:[]) (symbol '-')) <|> success "";
-      c <- (satisfy isDigitW0);
-      s <- (many (satisfy isDigit));
-      return $ [c] ++ s ++ t;
-    } <|> fmap (:[]) (symbol '0')
-    f acc '-' = -acc
-    f acc n   = acc * 10 + (digitToInt n)
-
-{- проходит старые тесты
-parseNum :: Parser String String Int
-parseNum = (foldl (\acc d -> f acc d) 0) `fmap` go
-  where
-    go :: Parser String String String
-    go = do 
-      t <- many (symbol '-')
-      s <- (some (satisfy isDigit))
-      return $ s ++ t
-    f acc '-' = -acc
-    f acc n   = acc * 10 + (digitToInt n)
--}
+    go = some (satisfy isDigit)
 
 isLetterOrUnderscore = (satisfy isLetter) <|> (symbol '_')
 
@@ -129,6 +121,7 @@ toOperator "<=" = success Le
 toOperator "<"  = success Lt
 toOperator ">=" = success Ge
 toOperator ">"  = success Gt
+toOperator "!"  = success Not
 toOperator _    = fail' "Failed toOperator"
 
 evaluate :: String -> Maybe Int
@@ -160,3 +153,5 @@ compute (BinOp Le     x y) = boolToInt $ (compute x) <= (compute y)
 compute (BinOp Lt     x y) = boolToInt $ (compute x) < (compute y)
 compute (BinOp Ge     x y) = boolToInt $ (compute x) >= (compute y)
 compute (BinOp Gt     x y) = boolToInt $ (compute x) > (compute y)
+compute (UnaryOp Not    x) = if (compute x == 0) then 1 else 0
+compute (UnaryOp Minus  x) = -(compute x)
