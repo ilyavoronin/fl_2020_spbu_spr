@@ -55,12 +55,11 @@ data Associativity
 data OpType = Binary Associativity
             | Unary
 
-uberExpr :: Monoid e
-         => [(Parser e i op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
-         -> Parser e i ast            -- парсер элементарного выражения
+uberExpr :: [(Parser String String op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
+         -> Parser String String ast            -- парсер элементарного выражения
          -> (op -> ast -> ast -> ast) -- конструктор узла дерева для бинарной операции
          -> (op -> ast -> ast)        -- конструктор узла для унарной операции
-         -> Parser e i ast
+         -> Parser String String ast
 uberExpr ((opar, typ):xs) epar fast bast = let 
   combpar = uberExpr xs epar fast bast
   parseMany = (,) <$> combpar <*> (many ((,) <$> opar <*> combpar)) in
@@ -103,21 +102,24 @@ toOperator ">"  = success Gt
 toOperator "!"  = success Not
 toOperator _    = fail' "Failed toOperator"
 
+parseOp :: String -> Parser String String Operator
+parseOp s = parseSpc *> (string s >>= toOperator) <* parseSpc
 
-mult'   = string "*" >>= toOperator
-sum'    = string "+" >>= toOperator
-minus'  = string "-" >>= toOperator
-div'    = string "/" >>= toOperator
-pow'    = string "^" >>= toOperator
-or'     = string "||" >>= toOperator
-and'    = string "&&" >>= toOperator
-equal'  = string "==" >>= toOperator
-nequal' = string "/=" >>= toOperator
-le'     = string "<=" >>= toOperator
-lt'     = string "<" >>= toOperator
-ge'     = string ">=" >>= toOperator
-gt'     = string ">"  >>= toOperator
-not'    = string "!"  >>= toOperator
+
+mult'   = parseOp "*"
+sum'    = parseOp "+"
+minus'  = parseOp "-"
+div'    = parseOp "/"
+pow'    = parseOp "^"
+or'     = parseOp "||"
+and'    = parseOp "&&"
+equal'  = parseOp "=="
+nequal' = parseOp "/="
+le'     = parseOp "<="
+lt'     = parseOp "<"
+ge'     = parseOp ">="
+gt'     = parseOp ">"
+not'    = parseOp "!"
 
 
 
@@ -161,12 +163,6 @@ parseIdent = do
   t3 <- many (symbol '\'')
   parseSpc
   return $ t1 ++ t2 ++ t3
-
-operators = ["+", "-", "*", "/=", "/", "==", "=", "<=", ">=", "<", ">", "||", "&&", "^"]
-
--- Парсер для операторов
-parseOp :: Parser String String Operator
-parseOp = parseSpc *> ((parseAnyString operators) >>= toOperator) <* parseSpc
 
 
 

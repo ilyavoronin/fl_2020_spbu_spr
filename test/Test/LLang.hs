@@ -71,6 +71,7 @@ unit_LLangTestAll = do
 	                       	]),
 	                       Write (Ident "l")
 	                   ])
+	runParser parseL "input(c); x = (  1  ) + -  2;" @?= Success "" (Seq [Read "c", Assign "x" (BinOp Plus (Num 1) (UnaryOp Minus (Num 2)))])
 
 
 
