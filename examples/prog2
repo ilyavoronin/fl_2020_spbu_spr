@@ -1,0 +1,10 @@
+input(n);
+fib0 = 1;
+fib1 = 0;
+while (n > 0) {
+    tmp = fib1;
+    fib1 = fib0 + fib1;
+    fib0 = tmp;
+    n = n - 1;
+}
+print(fib1);

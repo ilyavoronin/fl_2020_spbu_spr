@@ -38,6 +38,11 @@ executables:
     source-dirs:         app/expr
     dependencies:
     - fl2020-spbu-spr
+  llang:
+    main:                Main.hs
+    source-dirs:         app/llang
+    dependencies:
+    - fl2020-spbu-spr
 
 tests:
   test:
