@@ -1,8 +1,7 @@
 module Test.Expr where
 
 import           AST                 (AST (..), Operator (..))
-import           Combinators         (Parser (..), Result (..), runParser,
-                                      symbol)
+import           Combinators         (Parser (..), Result (..), runParser, string, symbol)
 import           Control.Applicative ((<|>))
 import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, parseOp, toOperator, uberExpr, parseIdent, OpType (..))
@@ -29,23 +28,22 @@ unit_evaluate = do
     evaluate "((1-(2*3))+4)" @?= Just ((1-(2*3))+4)
     evaluate "1-2+3-4" @?= Just (1-2+3-4)
     evaluate "6/2*3" @?= Just (6 `div` 2 * 3)
+    evaluate "0||2+3||1" @?= Just 5
+    evaluate "1&&0&&2+3" @?= Just 0
+    evaluate "5&&2+3&&1+4*3" @?= Just 13
+    evaluate "0||1&&2+3" @?= Just 5
+    evaluate "2^2^3+5" @?= Just 261
+    evaluate "5+1&&6==1+2*4-3||5" @?= Just 1
+    evaluate "5+1<2^3&&6>=1+2*4-2||5" @?= Just 5
+    evaluate "5+1<2^3&&(2+3)^4<=1+2*4-4||5" @?= Just 5
+    evaluate "5+1<2^3&&6<=1+2*4-3||5" @?= Just 1
 
 unit_parseNum :: Assertion
 unit_parseNum = do
     runParser parseNum "7" @?= Success "" 7
     runParser parseNum "12+3" @?= Success "+3" 12
-    runParser parseNum "007" @?= Success "" 7
-    assertBool "" $ isFailure (runParser parseNum "+3")
-    assertBool "" $ isFailure (runParser parseNum "a")
-
-unit_parseNegNum :: Assertion
-unit_parseNegNum = do
-    runParser parseNum "123" @?= Success "" 123
-    runParser parseNum "-123" @?= Success "" (-123)
-    runParser parseNum "--123" @?= Success "" 123
-    assertBool "" $ isFailure $ runParser parseNum "+-3"
-    assertBool "" $ isFailure $ runParser parseNum "-+3"
-    assertBool "" $ isFailure $ runParser parseNum "-a"
+    assertBool "" $ isFailure $ runParser parseNum "+3"
+    assertBool "" $ isFailure $ runParser parseNum "a"
 
 unit_parseIdent :: Assertion
 unit_parseIdent = do
@@ -57,6 +55,7 @@ unit_parseIdent = do
     runParser parseIdent "abc123" @?= Success "" "abc123"
     runParser parseIdent "_" @?= Success "" "_"
     runParser parseIdent "abc*1" @?= Success "*1" "abc"
+    runParser parseIdent "abc34sd55''''5" @?= Success "5" "abc34sd55''''"
     assertBool "" $ isFailure $ runParser parseIdent "123abc"
     assertBool "" $ isFailure $ runParser parseIdent "123"
     assertBool "" $ isFailure $ runParser parseIdent ""
@@ -67,10 +66,20 @@ unit_parseOp = do
     runParser parseOp "**" @?= Success "*" Mult
     runParser parseOp "-2" @?= Success "2" Minus
     runParser parseOp "/1" @?= Success "1" Div
+    runParser parseOp "||1" @?= Success "1" Or
+    runParser parseOp "<==" @?= Success "=" Le
+    runParser parseOp "<<" @?= Success "<" Lt
+    runParser parseOp ">==" @?= Success "=" Ge
+    runParser parseOp ">>" @?= Success ">" Gt
+    runParser parseOp "==<" @?= Success "<" Equal
+    runParser parseOp "/==" @?= Success "=" Nequal
+    runParser parseOp "^^" @?= Success "^" Pow
     assertBool "" $ isFailure (runParser parseOp "12")
 
 unit_parseExpr :: Assertion
 unit_parseExpr = do
+    runParser parseExpr "0||1&&2+3" @?= Success "" (BinOp Or (Num 0) (BinOp And (Num 1) (BinOp Plus (Num 2) (Num 3))))
+    runParser parseExpr "1*-23*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (UnaryOp Minus (Num 23))) (Num 3))
     runParser parseExpr "1*2*3"   @?= Success "" (BinOp Mult (BinOp Mult (Num 1) (Num 2)) (Num 3))
     runParser parseExpr "123"     @?= Success "" (Num 123)
     runParser parseExpr "abc"     @?= Success "" (Ident "abc")
@@ -93,8 +102,8 @@ unit_parseExpr = do
     runParser parseExpr "1<=x" @?= Success "" (BinOp Le (Num 1) (Ident "x"))
     runParser parseExpr "1&&x" @?= Success "" (BinOp And (Num 1) (Ident "x"))
     runParser parseExpr "1||x" @?= Success "" (BinOp Or (Num 1) (Ident "x"))
-    runParser parseExpr "(1==x+2)||3*4<y-5/6&&(7/=z^8)||(id>12)&&abc<=13||xyz>=42" @?=
-      runParser parseExpr "(1==(x+2))||(((3*4)<(y-(5/6))&&(7/=(z^8)))||(((id>12)&&(abc<=13))||(xyz>=42)))"
+    runParser parseExpr "(1==x+2)||3*4<y-5/6&&(7/=z^8)||(id>12)&&abc<=13||xyz>=42" @?= 
+        runParser parseExpr "(((1==(x+2))||((3*4)<(y-(5/6))&&(7/=z^8)))||(id>12)&&(abc<=13))||(xyz>=42)"
 
 unit_unaryEpxr = do
     runParser parseExpr "-1+2" @?= Success "" (BinOp Plus (UnaryOp Minus (Num 1)) (Num 2))
@@ -116,10 +125,10 @@ unit_unaryEpxr = do
     assertBool "" $ isFailure $ runParser parseExpr "--1"
     assertBool "" $ isFailure $ runParser parseExpr "-!1"
 
-mult  = symbol '*' >>= toOperator
-sum'  = symbol '+' >>= toOperator
-minus = symbol '-' >>= toOperator
-div'  = symbol '/' >>= toOperator
+mult  = string "*" >>= toOperator
+sum'  = string "+" >>= toOperator
+minus = string "-" >>= toOperator
+div'  = string "/" >>= toOperator
 
 expr1 :: Parser String String AST
 expr1 =
