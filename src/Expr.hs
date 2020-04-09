@@ -16,7 +16,17 @@ data OpType = Binary Associativity
             | Unary
 
 evalExpr :: Subst -> AST -> Maybe Int
-evalExpr = error "Not implemented"
+evalExpr sub (BinOp op ast1 ast2) =  do
+  res1 <- (evalExpr sub ast1)
+  res2 <- (evalExpr sub ast2)
+  return $ computeBinOp op res1 res2
+evalExpr sub (UnaryOp op ast) = do
+  res <- (evalExpr sub ast)
+  return $ computeUnaryOp op res
+evalExpr sub (Num n) = Just n
+evalExpr sub (Ident s) = do
+  val <- Map.lookup s sub
+  return val
 
 uberExpr :: [(Parser String String op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
          -> Parser String String ast            -- парсер элементарного выражения
@@ -139,22 +149,28 @@ boolToInt _    = 0
 
 compute :: AST -> Int
 compute (Num x)           = x
-compute (BinOp Plus x y)  = compute x + compute y
-compute (BinOp Mult x y)  = compute x * compute y
-compute (BinOp Minus x y) = compute x - compute y
-compute (BinOp Div x y)   = compute x `div` compute y
-compute (BinOp Pow x y)   = (compute x) ^ (compute y)
-compute (BinOp Or  x y)   = case (compute x) of
-                               p | p == 0 -> compute y
+compute (BinOp op x y)  = computeBinOp op (compute x) (compute y)
+compute (UnaryOp op x)  = computeUnaryOp op (compute x)
+
+computeBinOp :: Operator -> Int -> Int -> Int
+computeBinOp Plus x y  = x + y
+computeBinOp Mult x y = x * y
+computeBinOp Minus x y = x - y
+computeBinOp Div x y = div x y
+computeBinOp Pow x y = x ^ y
+computeBinOp Or  x y   = case x of
+                               p | p == 0 -> y
                                p          -> p
-compute (BinOp And x y)   = case (compute x) of
-                               p | p /= 0 -> compute y
+computeBinOp And x y   = case x of
+                               p | p /= 0 -> y
                                p          -> p
-compute (BinOp Equal x y) = boolToInt $ (compute x) == (compute y)
-compute (BinOp Nequal x y) = boolToInt $ (compute x) /= (compute y)
-compute (BinOp Le     x y) = boolToInt $ (compute x) <= (compute y)
-compute (BinOp Lt     x y) = boolToInt $ (compute x) < (compute y)
-compute (BinOp Ge     x y) = boolToInt $ (compute x) >= (compute y)
-compute (BinOp Gt     x y) = boolToInt $ (compute x) > (compute y)
-compute (UnaryOp Not    x) = if (compute x == 0) then 1 else 0
-compute (UnaryOp Minus  x) = -(compute x)
+computeBinOp Equal  x y = boolToInt $ x == y
+computeBinOp Nequal x y = boolToInt $ x /= y
+computeBinOp Le     x y = boolToInt $ x <= y
+computeBinOp Lt     x y = boolToInt $ x < y
+computeBinOp Ge     x y = boolToInt $ x >= y
+computeBinOp Gt     x y = boolToInt $ x > y
+
+computeUnaryOp :: Operator -> Int -> Int
+computeUnaryOp Not    x = if (x == 0) then 1 else 0
+computeUnaryOp Minus  x = -x

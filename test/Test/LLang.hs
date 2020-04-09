@@ -9,6 +9,12 @@ import           Control.Applicative ((<|>))
 import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, parseOp, toOperator, uberExpr, parseIdent, OpType (..))
 
+unit_lang1 :: Assertion
+unit_lang1 = do
+  let prog = "input(x); while(x > 0) {x = x - 1;} print(x);"
+  let last = getLast (runParser parseL prog)
+  eval last (initialConf [5]) @?= Just (Conf (Map.fromList[("x", 0)]) [] [0])
+
 -- read x;
 -- if (x > 13)
 -- then { write x }
@@ -207,7 +213,7 @@ unit_LLangTestAll = do
 
 unit_LLangTestComment :: Assertion
 unit_LLangTestComment = do
-	runParser parseL "D:print(dfdfd) :D print(5); asdf" @?= Success "asdf" (Seq [Write (Num 5)])
+	runParser parseL "D:print(dfdfd) :D print(5); \n" @?= Success "" (Seq [Write (Num 5)])
 
 
 

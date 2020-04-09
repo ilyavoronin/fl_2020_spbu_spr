@@ -61,3 +61,8 @@ parseComment = do
 
 parseUntil :: String -> Parser String String String
 parseUntil s = (string s) <|> ((satisfy (\c -> True)) >> (parseUntil s)) 
+
+
+parseOnlyEmpty :: Parser String String ()
+parseOnlyEmpty = Parser 
+    (\input -> if (input == "") then (Success "" ()) else (Failure ("Can't parse whole string. Left:" ++ input)))

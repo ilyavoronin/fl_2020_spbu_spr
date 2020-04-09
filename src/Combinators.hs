@@ -3,7 +3,7 @@ module Combinators where
 import           Control.Applicative
 
 data Result error input result
-  = Success input result
+  = Success {input :: input, result :: result}
   | Failure error
   deriving (Show, Eq)
 
