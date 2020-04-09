@@ -1,8 +1,8 @@
 module Expr where
 
-<<<<<<< HEAD
 import           AST         (AST (..), Operator (..), Subst (..))
-import           Combinators (Parser (..), Result (..), elem', fail', satisfy, success, symbol, parseAny, string, parseAnyString)
+import           Combinators (Parser (..), Result (..))
+import           SimpleParsers
 import           Data.Char   (digitToInt, isDigit, isLetter)
 import           Control.Applicative
 import qualified Data.Map as Map
@@ -16,14 +16,13 @@ data OpType = Binary Associativity
             | Unary
 
 evalExpr :: Subst -> AST -> Maybe Int
-evalExpr = error "evalExpr undefined"
+evalExpr = error "Not implemented"
 
-uberExpr :: Monoid e
-         => [(Parser e i op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
-         -> Parser e i ast            -- парсер элементарного выражения
+uberExpr :: [(Parser String String op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
+         -> Parser String String ast            -- парсер элементарного выражения
          -> (op -> ast -> ast -> ast) -- конструктор узла дерева для бинарной операции
          -> (op -> ast -> ast)        -- конструктор узла для унарной операции
-         -> Parser e i ast
+         -> Parser String String ast
 uberExpr ((opar, typ):xs) epar fast bast = let 
   combpar = uberExpr xs epar fast bast
   parseMany = (,) <$> combpar <*> (many ((,) <$> opar <*> combpar)) in
@@ -49,20 +48,41 @@ uberExpr ((opar, typ):xs) epar fast bast = let
 uberExpr [] epar _ _ = epar
 
 
-mult'   = string "*" >>= toOperator
-sum'    = string "+" >>= toOperator
-minus'  = string "-" >>= toOperator
-div'    = string "/" >>= toOperator
-pow'    = string "^" >>= toOperator
-or'     = string "||" >>= toOperator
-and'    = string "&&" >>= toOperator
-equal'  = string "==" >>= toOperator
-nequal' = string "/=" >>= toOperator
-le'     = string "<=" >>= toOperator
-lt'     = string "<" >>= toOperator
-ge'     = string ">=" >>= toOperator
-gt'     = string ">"  >>= toOperator
-not'    = string "!"  >>= toOperator
+toOperator :: String -> Parser String String Operator
+toOperator "+"  = success Plus
+toOperator "*"  = success Mult
+toOperator "-"  = success Minus
+toOperator "/"  = success Div
+toOperator "^"  = success Pow
+toOperator "||" = success Or
+toOperator "&&" = success And
+toOperator "==" = success Equal
+toOperator "/=" = success Nequal
+toOperator "<=" = success Le
+toOperator "<"  = success Lt
+toOperator ">=" = success Ge
+toOperator ">"  = success Gt
+toOperator "!"  = success Not
+toOperator _    = fail' "Failed toOperator"
+
+parseOp :: String -> Parser String String Operator
+parseOp s = parseSpc *> (string s >>= toOperator) <* parseSpc
+
+
+mult'   = parseOp "*"
+sum'    = parseOp "+"
+minus'  = parseOp "-"
+div'    = parseOp "/"
+pow'    = parseOp "^"
+or'     = parseOp "||"
+and'    = parseOp "&&"
+equal'  = parseOp "=="
+nequal' = parseOp "/="
+le'     = parseOp "<="
+lt'     = parseOp "<"
+ge'     = parseOp ">="
+gt'     = parseOp ">"
+not'    = parseOp "!"
 
 
 
@@ -82,7 +102,7 @@ operatorsParsers = [(or', Binary LeftAssoc),
 parseExpr :: Parser String String AST
 parseExpr = uberExpr
             operatorsParsers
-            (Num <$> parseNum <|> Ident <$> parseIdent <|> symbol '(' *> parseExpr <* symbol ')')
+            (Num <$> parseNum <|> Ident <$> parseIdent <|> parseSpc *> symbol '(' *> parseSpc *> parseExpr <* parseSpc <* symbol ')' <* parseSpc)
             BinOp
             UnaryOp
 
@@ -94,40 +114,18 @@ parseNum :: Parser String String Int
 parseNum = foldl (\acc d -> 10 * acc + digitToInt d) 0 `fmap` go
   where
     go :: Parser String String String
-    go = some (satisfy isDigit)
+    go = parseSpc *> some (satisfy isDigit) <* parseSpc
 
 isLetterOrUnderscore = (satisfy isLetter) <|> (symbol '_')
 
 parseIdent :: Parser String String String
 parseIdent = do
+  parseSpc
   t1 <- some isLetterOrUnderscore
   t2 <- many (isLetterOrUnderscore <|> (satisfy isDigit))
   t3 <- many (symbol '\'')
+  parseSpc
   return $ t1 ++ t2 ++ t3
-
-operators = ["+", "-", "*", "/=", "/", "==", "=", "<=", ">=", "<", ">", "||", "&&", "^"]
-
--- Парсер для операторов
-parseOp :: Parser String String Operator
-parseOp = (parseAnyString operators) >>= toOperator where
-
--- Преобразование символов операторов в операторы
-toOperator :: String -> Parser String String Operator
-toOperator "+"  = success Plus
-toOperator "*"  = success Mult
-toOperator "-"  = success Minus
-toOperator "/"  = success Div
-toOperator "^"  = success Pow
-toOperator "||" = success Or
-toOperator "&&" = success And
-toOperator "==" = success Equal
-toOperator "/=" = success Nequal
-toOperator "<=" = success Le
-toOperator "<"  = success Lt
-toOperator ">=" = success Ge
-toOperator ">"  = success Gt
-toOperator "!"  = success Not
-toOperator _    = fail' "Failed toOperator"
 
 evaluate :: String -> Maybe Int
 evaluate input = do

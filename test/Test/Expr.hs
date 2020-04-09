@@ -1,8 +1,9 @@
 module Test.Expr where
 
 import           AST                 (AST (..), Operator (..))
-import           Combinators         (Parser (..), Result (..), runParser, string, symbol)
+import           Combinators         (Parser (..), Result (..), runParser)
 import           Control.Applicative ((<|>))
+import           SimpleParsers
 import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, parseOp, toOperator, uberExpr, parseIdent, OpType (..))
 import           Test.Tasty.HUnit    (Assertion, (@?=), assertBool)
@@ -47,11 +48,11 @@ unit_parseNum = do
 
 unit_parseIdent :: Assertion
 unit_parseIdent = do
-    runParser parseIdent "abc def" @?= Success " def" "abc"
-    runParser parseIdent "AbC dEf" @?= Success " dEf" "AbC"
+    runParser parseIdent "abc def" @?= Success "def" "abc"
+    runParser parseIdent "AbC dEf" @?= Success "dEf" "AbC"
     runParser parseIdent "_123" @?= Success "" "_123"
-    runParser parseIdent "a_b_c d_e" @?= Success " d_e" "a_b_c"
-    runParser parseIdent "x_ " @?= Success " " "x_"
+    runParser parseIdent "a_b_c d_e" @?= Success "d_e" "a_b_c"
+    runParser parseIdent "x_ " @?= Success "" "x_"
     runParser parseIdent "abc123" @?= Success "" "abc123"
     runParser parseIdent "_" @?= Success "" "_"
     runParser parseIdent "abc*1" @?= Success "*1" "abc"
@@ -60,21 +61,6 @@ unit_parseIdent = do
     assertBool "" $ isFailure $ runParser parseIdent "123"
     assertBool "" $ isFailure $ runParser parseIdent ""
 
-unit_parseOp :: Assertion
-unit_parseOp = do
-    runParser parseOp "+1" @?= Success "1" Plus
-    runParser parseOp "**" @?= Success "*" Mult
-    runParser parseOp "-2" @?= Success "2" Minus
-    runParser parseOp "/1" @?= Success "1" Div
-    runParser parseOp "||1" @?= Success "1" Or
-    runParser parseOp "<==" @?= Success "=" Le
-    runParser parseOp "<<" @?= Success "<" Lt
-    runParser parseOp ">==" @?= Success "=" Ge
-    runParser parseOp ">>" @?= Success ">" Gt
-    runParser parseOp "==<" @?= Success "<" Equal
-    runParser parseOp "/==" @?= Success "=" Nequal
-    runParser parseOp "^^" @?= Success "^" Pow
-    assertBool "" $ isFailure (runParser parseOp "12")
 
 unit_parseExpr :: Assertion
 unit_parseExpr = do

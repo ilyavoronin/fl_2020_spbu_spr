@@ -1,7 +1,7 @@
 module Test.Combinators where
 
-import           Combinators      (Parser, Result (..), elem', runParser,
-                                   satisfy, sepBy1, symbol)
+import           Combinators      (Parser, Result (..), runParser, sepBy1)
+import           SimpleParsers
 import           Test.Tasty.HUnit (Assertion, (@?=))
 import           Control.Applicative
 

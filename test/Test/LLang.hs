@@ -4,7 +4,7 @@ import           AST              (AST (..), Operator (..))
 import qualified Data.Map         as Map
 import           Test.Tasty.HUnit (Assertion, assertBool, (@?=))
 import           LLang 
-import           Combinators         (Parser (..), Result (..), runParser, string, symbol)
+import           Combinators         (Parser (..), Result (..), runParser)
 import           Control.Applicative ((<|>))
 import           Expr                (Associativity (..), evaluate, parseExpr,
                                       parseNum, parseOp, toOperator, uberExpr, parseIdent, OpType (..))
