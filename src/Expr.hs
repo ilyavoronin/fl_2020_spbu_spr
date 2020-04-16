@@ -112,10 +112,22 @@ operatorsParsers = [(or', Binary LeftAssoc),
                     (minus', Unary),
                     (pow', Binary RightAssoc)]
 
+parseFuncCall :: Parser String String AST
+parseFuncCall = do
+  parseSpc
+  string "?"
+  name <- parseIdent
+  parseSpc
+  string "("
+  args <- many (parseSpc *> parseExpr <* parseSpc)
+  string ")"
+  parseSpc
+  return $ FunctionCall name args
+
 parseExpr :: Parser String String AST
 parseExpr = uberExpr
             operatorsParsers
-            (Num <$> parseNum <|> Ident <$> parseIdent <|> parseSpc *> symbol '(' *> parseSpc *> parseExpr <* parseSpc <* symbol ')' <* parseSpc)
+            (parseFuncCall <|> Num <$> parseNum <|> Ident <$> parseIdent <|> parseSpc *> symbol '(' *> parseSpc *> parseExpr <* parseSpc <* symbol ')' <* parseSpc)
             BinOp
             UnaryOp
 

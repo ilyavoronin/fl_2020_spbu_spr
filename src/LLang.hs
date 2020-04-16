@@ -18,8 +18,10 @@ data Configuration = Conf { subst :: Subst, input :: [Int], output :: [Int] }
                    deriving (Show, Eq)
 
 data Program = Program { functions :: [Function], main :: LAst }
+                deriving (Show, Eq)
 
 data Function = Function { name :: String, args :: [Var], funBody :: LAst }
+                deriving (Show, Eq)
 
 data LAst
   = If { cond :: Expr, thn :: LAst, els :: LAst }
@@ -37,10 +39,30 @@ getLast _                = Seq []
 
 
 parseDef :: Parser String String Function
-parseDef = error "parseDef undefined"
+parseDef = do
+  parseSpc
+  string "!"
+  name <- parseIdent
+  parseSpc
+  string "("
+  args <- many (parseSpc *> parseIdent <* parseSpc)
+  string ")"
+  parseSpc
+  string "{"
+  last <- parseL
+  string "}"
+  parseSpc
+  return $ Function name args last
 
 parseProg :: Parser String String Program
-parseProg = error "parseProg undefined"
+parseProg = do
+  parseSpc
+  functions <- many (parseSpc *> parseDef <* parseSpc)
+  main <- parseL
+  parseSpc
+  parseOnlyEmpty
+  return $ Program functions main
+
 
 initialConf :: [Int] -> Configuration
 initialConf input = Conf Map.empty input []
@@ -101,19 +123,13 @@ stmt =
     ]
 
 parseEvrExcSeq :: Parser String String LAst
-parseEvrExcSeq = parseIf <|> parseWhile <|> parseRead <|> parseWrite <|> parseAssign
+parseEvrExcSeq = parseIf <|> parseWhile <|> parseRead <|> parseWrite <|> parseAssign <|> parseReturn
 
-parsePrefix :: Parser String String LAst
-parsePrefix = do
-  lasts <- many parseEvrExcSeq
-  return $ Seq lasts
 
 parseL :: Parser String String LAst
 parseL = do
-  prog <- parsePrefix
-  parseSpc
-  parseOnlyEmpty
-  return prog
+  lasts <- many parseEvrExcSeq
+  return $ Seq lasts
 
 
 
@@ -132,7 +148,7 @@ parseIf = do
     parseSpc
     symbol '{'
     parseSpc
-    lastIf <- parsePrefix
+    lastIf <- parseL
     symbol '}'
     parseSpc
     return (exprAst, lastIf)
@@ -142,7 +158,7 @@ parseIf = do
     parseSpc
     symbol '{'
     parseSpc
-    lastElse <- parsePrefix
+    lastElse <- parseL
     parseSpc
     symbol '}'
     parseSpc
@@ -162,7 +178,7 @@ parseWhile = do
   parseSpc
   symbol '{'
   parseSpc
-  lastBody <- parsePrefix
+  lastBody <- parseL
   parseSpc
   symbol '}'
   parseSpc
@@ -213,6 +229,17 @@ parseWrite = do
   parseSpc
   return $ Write expr
 
+parseReturn :: Parser String String LAst
+parseReturn = do
+  parseSpc
+  string "return!"
+  parseSpc
+  expr <- parseExpr
+  parseSpc
+  string ";"
+  parseSpc
+  return $ Return expr
+
 instance Show Function where
   show (Function name args funBody) =
     printf "%s(%s) =\n%s" name (intercalate ", " $ map show args) (unlines $ map (identation 1) $ lines $ show funBody)
@@ -220,6 +247,7 @@ instance Show Function where
 instance Show Program where
   show (Program defs main) =
     printf "%s\n\n%s" (intercalate "\n\n" $ map show defs) (show main)
+
 
 instance Show LAst where
   show =

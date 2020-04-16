@@ -320,3 +320,19 @@ unit_LLangTestDog = do
 	                       	]),
 	                       Write (Ident "l")
 	                   ])
+
+
+
+unit_LLangProgramTest :: Assertion
+unit_LLangProgramTest = do
+  let input = "  !sum (n m) {  return! n + m; }  !first ( n m ) { n = m; return! n; } while ( ?sum (1 2) + ?first ( 2 3 ) ) {print(555);}"
+      function1 =  ( Function "sum" ["n", "m"] (Seq [Return (BinOp Plus (Ident "n") (Ident "m"))]))
+      function2 =  ( Function "first" ["n", "m"] (Seq [Assign "n" (Ident "m"), Return (Ident "n")])) in
+   runParser parseProg input @?= Success (accept input) ( Program [function1, function2] (Seq [While 
+               (BinOp Plus (FunctionCall "sum" [Num 1, Num 2]) (FunctionCall "first" [Num 2, Num 3])) 
+               (Seq [Write (Num 555)])]))
+
+unit_LLangFunctionTest :: Assertion
+unit_LLangFunctionTest = do
+  let input = "!sum (n m) {  return! n + m; }" in
+   runParser parseDef input @?= Success (accept input) ( Function "sum" ["n", "m"] (Seq [Return (BinOp Plus (Ident "n") (Ident "m"))]))
