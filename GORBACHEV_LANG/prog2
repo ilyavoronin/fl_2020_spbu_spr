@@ -1,9 +1,0 @@
-{
-read n;
-assign res (1);
-while (n > 0) {
-    assign res (res * n);
-    assign n (n - 1);
-};
-print (res);
-}
