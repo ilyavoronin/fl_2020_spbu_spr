@@ -5,6 +5,8 @@ import           Combinators         (Parser, Result (..), runParser,
                                       toStream)
 import           Control.Applicative
 import           Test.Tasty.HUnit    (Assertion, assertBool, (@?=))
+import           SimpleParsers
+import           Control.Applicative
 
 testFailure = assertBool "" . isFailure
 
