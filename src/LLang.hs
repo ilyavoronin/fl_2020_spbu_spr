@@ -18,10 +18,10 @@ data Configuration = Conf { subst :: Subst, input :: [Int], output :: [Int] }
                    deriving (Show, Eq)
 
 data Program = Program { functions :: [Function], main :: LAst }
-                deriving (Show, Eq)
+                deriving (Eq)
 
 data Function = Function { name :: String, args :: [Var], funBody :: LAst }
-                deriving (Show, Eq)
+                deriving (Eq)
 
 data LAst
   = If { cond :: Expr, thn :: LAst, els :: LAst }
