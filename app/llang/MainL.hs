@@ -1,10 +1,10 @@
 import System.Environment
-import LLang (parseL, getLast, initialConf, eval, output)
+import LEval (parseAndEvalProg, Configuration (..))
 import Combinators
 
 main = do
     (f:input) <- getArgs
     s    <- readFile f
-    let prog = runParser parseL s
-    let (Just res) = eval (getLast prog) (initialConf (fmap read input))
-    print (output res)
+    case (parseAndEvalProg s (fmap read input)) of
+    	Just res -> print (output res)
+    	otherwise -> print "Something wrong"

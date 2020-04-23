@@ -1,2 +1,20 @@
-input(x);
-print(x); 
+!F(a1  (ー_ー )  a2  (￣︿￣)  a3 (￣ヘ￣) a4 ヽ(｀⌒´メ)ノ  a5 (◕‿◕)   a6  ╰(*´︶`*)╯  a7) {
+	aaaaaaa = a1 + a2 + a3 + a4 + a5 + a6 + a7;
+	if (aaaaaaa < 0) {
+	    res = 0;
+	}
+	else {
+	    res = ?F(a1 - 1 ╰(*´︶`*)╯ a2 - 1 (◕‿◕) a3 - 1 ヽ(｀⌒´メ)ノ a4 - 1 (￣ヘ￣) a5 - 1 (￣︿￣) a6 - 1 (ー_ー ) a7 - 1) + 1;
+	}
+	return! res;
+}
+
+input(a1);
+input(a2);
+input(a3);
+input(a4);
+input(a5);
+input(a6);
+input(a7);
+
+print(?F(a1 ╰(*´︶`*)╯ a2 (◕‿◕) a3 ヽ(｀⌒´メ)ノ a4 (￣ヘ￣) a5 (￣︿￣) a6 (ー_ー ) a7));

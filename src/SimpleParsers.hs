@@ -39,4 +39,4 @@ parseUntil s = (string s) <|> ((satisfy (\c -> True)) >> (parseUntil s))
 
 parseOnlyEmpty :: Parser String String ()
 parseOnlyEmpty = Parser 
-    (\(InputStream input pos) -> if (input == "") then (Success (InputStream input pos) ()) else (Failure [ErrorMsg ["Can't parse whole string. Left:" ++ input] 0]))
+    (\(InputStream input pos) -> if (input == "") then (Success (InputStream input pos) ()) else (Failure [ErrorMsg ["Can't parse whole string. Left:" ++ input] pos]))

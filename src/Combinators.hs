@@ -10,7 +10,7 @@ data Result error input result
   | Failure [ErrorMsg error]
   deriving (Eq)
 
-type Position = Int
+data Position = Position {line :: Int, col :: Int}  deriving (Show, Eq, Ord)
 
 newtype Parser error input result
   = Parser { runParser' :: (InputStream input) -> Result error input result }
@@ -23,7 +23,7 @@ data ErrorMsg e = ErrorMsg { errors :: [e], pos :: Position }
 
 makeError e p = ErrorMsg [e] p
 
-initPosition = 0
+initPosition = Position 0 0
 
 runParser :: Parser error input result -> input -> Result error input result
 runParser parser input = runParser' parser (InputStream input initPosition)
@@ -31,8 +31,10 @@ runParser parser input = runParser' parser (InputStream input initPosition)
 toStream :: a -> Position -> InputStream a
 toStream = InputStream
 
-incrPos :: InputStream a -> InputStream a
-incrPos (InputStream str pos) = InputStream str (pos + 1)
+incrPos :: InputStream String -> InputStream String
+incrPos (InputStream str@('\n':_) (Position line col)) = InputStream str (Position (line + 1) 0)
+incrPos (InputStream str@('\t':_) (Position line col)) = InputStream str (Position line (col + 4))
+incrPos (InputStream str (Position line col)) = InputStream str (Position line (col + 1))
 
 instance Functor (Parser error input) where
   fmap f p = Parser runParser'' where
@@ -99,7 +101,7 @@ eof :: Parser String String ()
 eof = Parser $ \input -> if null $ stream input then Success input () else Failure [makeError "Not eof" (curPos input)]
 
 -- Проверяет, что первый элемент входной последовательности удовлетворяет предикату
-satisfy :: (a -> Bool) -> Parser String [a] a
+satisfy :: (Char -> Bool) -> Parser String String Char
 satisfy p = Parser $ \(InputStream input pos) ->
   case input of
     (x:xs) | p x -> Success (incrPos $ InputStream xs pos) x
@@ -118,11 +120,11 @@ fail' :: e -> Parser e i a
 fail' msg = Parser $ \input -> Failure [makeError msg (curPos input)]
 
 word :: String -> Parser String String String
-word w = Parser $ \(InputStream input pos) ->
+word w = Parser $ \(InputStream input pos@(Position line col)) ->
   let (pref, suff) = splitAt (length w) input in
   if pref == w
-  then Success (InputStream suff (pos + length w)) w
-  else Failure [makeError ("Expected " ++ show w) pos]
+  then Success (InputStream suff (Position line (col + length w))) w
+  else Failure [makeError ("Expected " ++ show w) pos ]
 
 instance Show (ErrorMsg String) where
   show (ErrorMsg e pos) = "at position " ++ show pos ++ ":\n" ++ (unlines $ map ('\t':) (nub e))

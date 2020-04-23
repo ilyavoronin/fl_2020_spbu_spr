@@ -3,8 +3,8 @@ module Test.LEval where
 import           AST
 import qualified Data.Map         as Map
 import           Data.Maybe       (isNothing)
-import           LEval            (evalProg)
-import           LLang            (Configuration (..), Function (..), LAst (..),
+import           LEval            (evalProg, parseAndEvalProg, Configuration (..))
+import           LLang            (Function (..), LAst (..),
                                    Program (..))
 import           Test.Tasty.HUnit (Assertion, assertBool, (@?=))
 import           Text.Printf      (printf)
@@ -63,12 +63,12 @@ prog1 =
     (
       Seq
         [ Read "x"
-        , Assign "_" (FunctionCall "f" [Ident "x"])
+        , Assign "a" (FunctionCall "f" [Ident "x"])
         ]
     )
 
 unit_evalProg1 = do
-    let vars x y = Map.fromList [("x", x), ("_", y)]
+    let vars x y = Map.fromList [("x", x), ("a", y)]
     ignoreDefs (evalProg prog1 [1..10]) (Just $ Conf (vars 1 0) [2..10] (reverse [2..10]) Map.empty)
     ignoreDefs (evalProg prog1 [13]) (Just $ Conf (vars 13 0) [] [] Map.empty)
 
@@ -90,12 +90,12 @@ prog2 =
     (
       Seq
         [ Read "x"
-        , Assign "_" (FunctionCall "f" [Ident "x"])
+        , Assign "a" (FunctionCall "f" [Ident "x"])
         ]
     )
 
 unit_evalProg2 = do
-    let vars x y = Map.fromList [("x", x), ("_", y)]
+    let vars x y = Map.fromList [("x", x), ("a", y)]
     ignoreDefs (evalProg prog2 [1..10]) (Just $ Conf (vars 1 0) [2..10] [2..10] Map.empty)
     ignoreDefs (evalProg prog2 [13]) (Just $ Conf (vars 13 0) [] [] Map.empty)
     ignoreDefs (evalProg prog2 []) Nothing
@@ -169,3 +169,33 @@ prog4 =
 
 unit_evalProg4 = do
     ignoreDefs (evalProg prog4 []) (Just $ Conf Map.empty [] [1,0,1,0,0,1,0,1] Map.empty)
+
+
+prog5 = 
+  Program
+    [ Function "aaaaaaa" ["n"] (Write (Ident "n")) (BinOp Plus (Ident "n") (Num 1))]
+    (Seq [
+        Read "a",
+        Write (FunctionCall "aaaaaaa" [Ident "a"])
+    ])
+
+
+unit_evalProg5 = do
+  ignoreDefs (evalProg prog5 [46]) (Just $ Conf (Map.fromList [("a", 46)]) [] [47, 46] Map.empty)
+
+
+
+unit_evalParseAndEval1 = do
+  prog6 <- readFile "examples/prog1"
+  do
+      ignoreDefs (parseAndEvalProg prog6 [1, 1, 1, 1, 1, 1, 1]) (Just $ Conf (Map.fromList [("a1", 1), ("a2", 1), ("a3", 1), ("a4", 1), ("a5", 1), ("a6", 1), ("a7", 1)]) [] [2] Map.empty)
+
+unit_evalParseAndEval2 = do
+  prog7 <- readFile "examples/prog2"
+  do
+    ignoreDefs (parseAndEvalProg prog7 [5]) (Just $ Conf (Map.fromList [("a", 5)]) [] [120, 0, 1, 2, 3, 4 ,5] Map.empty)
+
+unit_evalParseAndEval3 = do
+  prog8 <- readFile "examples/prog3"
+  do
+    ignoreDefs (parseAndEvalProg prog8 [5]) (Just $ Conf (Map.fromList [("n", 5)]) [] [120, 5, 4, 3, 2, 1 ,0] Map.empty)

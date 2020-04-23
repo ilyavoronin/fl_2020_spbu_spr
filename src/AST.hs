@@ -20,8 +20,6 @@ data Operator = Plus
               | Not
               deriving (Eq)
 
-type Subst = Map.Map String Int
-
 data AST = BinOp Operator AST AST
          | UnaryOp Operator AST
          | Ident String

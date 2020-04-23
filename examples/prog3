@@ -1,0 +1,13 @@
+!recFactorial(n) {
+	if (n == 0) {
+	    res = 1;
+	}
+	else {
+	    res = n * ?recFactorial(n - 1);
+	}
+	print(n);
+	return! res;
+}
+
+input(n);
+print(?recFactorial(n));

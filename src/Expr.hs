@@ -1,11 +1,10 @@
 module Expr where
 
-import           AST                 (AST (..), Operator (..), Subst (..))
+import           AST                 (AST (..), Operator (..))
 import           Combinators         (Parser (..), Result (..), fail',
                                       runParser, satisfy, stream, success, symbol)
 import           Control.Applicative
 import qualified Data.Map            as Map
-import           AST         (AST (..), Operator (..), Subst (..))
 import           SimpleParsers
 import           Data.Char   (digitToInt, isDigit, isLetter)
 import           Control.Applicative
@@ -18,18 +17,6 @@ data Associativity
 data OpType = Binary Associativity
             | Unary
 
-evalExpr :: Subst -> AST -> Maybe Int
-evalExpr sub (BinOp op ast1 ast2) =  do
-  res1 <- (evalExpr sub ast1)
-  res2 <- (evalExpr sub ast2)
-  return $ computeBinOp op res1 res2
-evalExpr sub (UnaryOp op ast) = do
-  res <- (evalExpr sub ast)
-  return $ computeUnaryOp op res
-evalExpr sub (Num n) = Just n
-evalExpr sub (Ident s) = do
-  val <- Map.lookup s sub
-  return val
 
 uberExpr :: [(Parser String String op, OpType)] -- список операций с их арностью и, в случае бинарных, ассоциативностью
          -> Parser String String ast            -- парсер элементарного выражения
@@ -112,6 +99,9 @@ operatorsParsers = [(or', Binary LeftAssoc),
                     (minus', Unary),
                     (pow', Binary RightAssoc)]
 
+
+parseArgDelimetrs = parseAnyString ["(ー_ー )", "(￣︿￣)", "(￣ヘ￣)", "ヽ(｀⌒´メ)ノ", "(◕‿◕)", "╰(*´︶`*)╯"]
+
 parseFuncCall :: Parser String String AST
 parseFuncCall = do
   parseSpc
@@ -119,7 +109,7 @@ parseFuncCall = do
   name <- parseIdent
   parseSpc
   string "("
-  args <- many (parseSpc *> parseExpr <* parseSpc)
+  args <- many ((parseSpc *> parseExpr <* parseSpc <*parseArgDelimetrs) <|> (parseSpc *> parseExpr <* parseSpc))
   string ")"
   parseSpc
   return $ FunctionCall name args

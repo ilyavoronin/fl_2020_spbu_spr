@@ -1,9 +1,9 @@
 module LLang where
 
-import AST (AST (..), Operator (..), Subst (..))
+import AST (AST (..), Operator (..))
 import Combinators (Parser (..), Result (..), symbol, success)
 import SimpleParsers
-import Expr (parseIdent, parseExpr, evalExpr)
+import Expr (parseIdent, parseExpr)
 import Data.Char (isSpace, isDigit, digitToInt, isLetter)
 import Control.Applicative
 import qualified Data.Map as Map
@@ -13,11 +13,6 @@ import           Text.Printf (printf)
 type Expr = AST
 
 type Var = String
-
-data Configuration = Conf { subst :: Subst, input :: [Int], output :: [Int], defs :: Defs }
-                   deriving (Show, Eq)
-
-type Defs = Map.Map String Function
 
 data Program = Program { functions :: [Function], main :: LAst }
                 deriving (Eq)
@@ -39,6 +34,8 @@ getLast (Success _ last) = last
 getLast _                = Seq []
 
 
+parseArgDelimetrs = parseAnyString ["(ー_ー )", "(￣︿￣)", "(￣ヘ￣)", "ヽ(｀⌒´メ)ノ", "(◕‿◕)", "╰(*´︶`*)╯"]
+
 parseDef :: Parser String String Function
 parseDef = do
   parseSpc
@@ -46,14 +43,16 @@ parseDef = do
   name <- parseIdent
   parseSpc
   string "("
-  args <- many (parseSpc *> parseIdent <* parseSpc)
+  args <- many ((parseSpc *> parseIdent <* parseSpc <*parseArgDelimetrs) <|> (parseSpc *> parseIdent <* parseSpc))
   string ")"
   parseSpc
   string "{"
   last <- parseL
+  parseSpc
+  retexp <- parseReturn
   string "}"
   parseSpc
-  return $ Function name args last
+  return $ Function name args last retexp
 
 parseProg :: Parser String String Program
 parseProg = do
@@ -63,49 +62,6 @@ parseProg = do
   parseSpc
   parseOnlyEmpty
   return $ Program functions main
-
-
-initialConf :: [Int] -> Configuration
-initialConf input = Conf Map.empty input []
-
-eval :: LAst -> Configuration -> Maybe Configuration
-eval (If cond lastIf lastElse) conf = do
-  res <- (evalExpr (subst conf) cond)
-  nconf <- case res of
-    0         -> eval lastElse conf
-    otherwise -> eval lastIf conf
-  return nconf
-
-eval (While cond last) conf = do
-  res <- evalExpr (subst conf) cond
-  nconf <- case res of
-    0         -> Just conf
-    otherwise -> do {
-        newConf <- eval last conf;
-        resConf <- eval (While cond last) newConf;
-        return resConf;
-    }
-  return nconf
-
-eval (Assign var exp) (Conf sub inp out) = do
-  val <- evalExpr sub exp
-  let newSub = Map.insert var val sub
-  return $ Conf newSub inp out
-
-eval (Read var) (Conf sub (x:xs) out) = do
-  let newSub = Map.insert var x sub
-  return $ Conf newSub xs out
-eval (Read var) _                     = Nothing
-
-eval (Write expr) (Conf sub inp out) = do
-  val <- evalExpr sub expr
-  return $ Conf sub inp (val:out)
-
-eval (Seq []) conf = Just conf
-eval (Seq (x:xs)) conf = do
-  tconf <- eval x conf
-  rconf <- eval (Seq xs) tconf
-  return rconf
 
 
 stmt :: LAst
@@ -124,7 +80,7 @@ stmt =
     ]
 
 parseEvrExcSeq :: Parser String String LAst
-parseEvrExcSeq = parseIf <|> parseWhile <|> parseRead <|> parseWrite <|> parseAssign <|> parseReturn
+parseEvrExcSeq = parseIf <|> parseWhile <|> parseRead <|> parseWrite <|> parseAssign
 
 
 parseL :: Parser String String LAst
@@ -230,7 +186,7 @@ parseWrite = do
   parseSpc
   return $ Write expr
 
-parseReturn :: Parser String String LAst
+parseReturn :: Parser String String Expr
 parseReturn = do
   parseSpc
   string "return!"
@@ -239,7 +195,7 @@ parseReturn = do
   parseSpc
   string ";"
   parseSpc
-  return $ Return expr
+  return expr
 
 instance Show Function where
   show (Function name args funBody returnExpr) =
