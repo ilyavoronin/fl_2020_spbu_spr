@@ -39,6 +39,12 @@ executables:
     dependencies:
     - fl2020-spbu-spr
 
+  llang:
+    main:                MainL.hs
+    source-dirs:         app/llang
+    dependencies:
+    - fl2020-spbu-spr
+
 tests:
   test:
     main:                Test.hs

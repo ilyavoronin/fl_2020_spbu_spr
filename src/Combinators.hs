@@ -35,16 +35,31 @@ incrPos :: InputStream a -> InputStream a
 incrPos (InputStream str pos) = InputStream str (pos + 1)
 
 instance Functor (Parser error input) where
-  fmap = error "fmap not implemented"
+  fmap f p = Parser runParser'' where
+    runParser'' input = case (runParser' p input) of
+      Failure error         -> Failure error
+      Success input' result -> Success input' (f result)
 
 instance Applicative (Parser error input) where
-  pure = error "pure not implemented"
-  (<*>) = error "<*> not implemented"
+  pure result = Parser (\input -> Success input result)
+  (<*>) fp p = 
+    Parser f where
+      f input =  case (runParser' fp input) of
+        Failure error          -> Failure error
+        Success input' fresult -> case (runParser' p input') of
+                                   Failure error          -> Failure error
+                                   Success input'' result -> Success input'' (fresult result)
+
 
 instance Monad (Parser error input) where
-  return = error "return not implemented"
+  return = pure
 
-  (>>=) = error ">>= not implemented"
+  (>>=) p f = 
+    Parser ff where
+      ff input = case (runParser' p input) of
+                           Failure error         -> Failure error
+                           Success input' result -> (runParser' (f result) input')
+
 
 instance Monoid error => Alternative (Parser error input) where
   empty = Parser $ \input -> Failure [makeError mempty (curPos input)]
